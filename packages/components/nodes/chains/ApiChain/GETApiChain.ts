@@ -32,7 +32,7 @@ class GETApiChain_Chains implements INode {
         this.name = 'getApiChain'
         this.version = 1.0
         this.type = 'GETApiChain'
-        this.icon = 'apichain.svg'
+        this.icon = 'get.svg'
         this.category = 'Chains'
         this.description = 'Chain to run queries against GET API'
         this.baseClasses = [this.type, ...getBaseClasses(APIChain)]
@@ -47,7 +47,7 @@ class GETApiChain_Chains implements INode {
                 name: 'apiDocs',
                 type: 'string',
                 description:
-                    'Description of how API works. Please refer to more <a target="_blank" href="https://github.com/hwchase17/langchain/blob/master/langchain/chains/api/open_meteo_docs.py">examples</a>',
+                    'Description of how API works. Please refer to more <a target="_blank" href="https://github.com/langchain-ai/langchain/blob/master/libs/langchain/langchain/chains/api/open_meteo_docs.py">examples</a>',
                 rows: 4
             },
             {

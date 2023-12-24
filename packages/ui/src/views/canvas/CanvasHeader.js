@@ -15,6 +15,8 @@ import Settings from 'views/settings'
 import SaveChatflowDialog from 'ui-component/dialog/SaveChatflowDialog'
 import APICodeDialog from 'views/chatflows/APICodeDialog'
 import AnalyseFlowDialog from 'ui-component/dialog/AnalyseFlowDialog'
+import ViewMessagesDialog from 'ui-component/dialog/ViewMessagesDialog'
+import StarterPromptsDialog from 'ui-component/dialog/StarterPromptsDialog'
 
 // API
 import chatflowsApi from 'api/chatflows'
@@ -44,6 +46,10 @@ const CanvasHeader = ({ chatflow, handleSaveFlow, handleDeleteFlow, handleLoadFl
     const [apiDialogProps, setAPIDialogProps] = useState({})
     const [analyseDialogOpen, setAnalyseDialogOpen] = useState(false)
     const [analyseDialogProps, setAnalyseDialogProps] = useState({})
+    const [conversationStartersDialogOpen, setConversationStartersDialogOpen] = useState(false)
+    const [conversationStartersDialogProps, setConversationStartersDialogProps] = useState({})
+    const [viewMessagesDialogOpen, setViewMessagesDialogOpen] = useState(false)
+    const [viewMessagesDialogProps, setViewMessagesDialogProps] = useState({})
 
     const updateChatflowApi = useApi(chatflowsApi.updateChatflow)
     const canvas = useSelector((state) => state.canvas)
@@ -53,12 +59,24 @@ const CanvasHeader = ({ chatflow, handleSaveFlow, handleDeleteFlow, handleLoadFl
 
         if (setting === 'deleteChatflow') {
             handleDeleteFlow()
+        } else if (setting === 'conversationStarters') {
+            setConversationStartersDialogProps({
+                title: 'Starter Prompts - ' + chatflow.name,
+                chatflow: chatflow
+            })
+            setConversationStartersDialogOpen(true)
         } else if (setting === 'analyseChatflow') {
             setAnalyseDialogProps({
                 title: 'Analyse Chatflow',
                 chatflow: chatflow
             })
             setAnalyseDialogOpen(true)
+        } else if (setting === 'viewMessages') {
+            setViewMessagesDialogProps({
+                title: 'View Messages',
+                chatflow: chatflow
+            })
+            setViewMessagesDialogOpen(true)
         } else if (setting === 'duplicateChatflow') {
             try {
                 localStorage.setItem('duplicatedFlowData', chatflow.flowData)
@@ -69,7 +87,7 @@ const CanvasHeader = ({ chatflow, handleSaveFlow, handleDeleteFlow, handleLoadFl
         } else if (setting === 'exportChatflow') {
             try {
                 const flowData = JSON.parse(chatflow.flowData)
-                let dataStr = JSON.stringify(generateExportFlowData(flowData))
+                let dataStr = JSON.stringify(generateExportFlowData(flowData), null, 2)
                 let dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr)
 
                 let exportFileDefaultName = `${chatflow.name} Chatflow.json`
@@ -367,6 +385,17 @@ const CanvasHeader = ({ chatflow, handleSaveFlow, handleDeleteFlow, handleLoadFl
             />
             <APICodeDialog show={apiDialogOpen} dialogProps={apiDialogProps} onCancel={() => setAPIDialogOpen(false)} />
             <AnalyseFlowDialog show={analyseDialogOpen} dialogProps={analyseDialogProps} onCancel={() => setAnalyseDialogOpen(false)} />
+            <StarterPromptsDialog
+                show={conversationStartersDialogOpen}
+                dialogProps={conversationStartersDialogProps}
+                onConfirm={() => setConversationStartersDialogOpen(false)}
+                onCancel={() => setConversationStartersDialogOpen(false)}
+            />
+            <ViewMessagesDialog
+                show={viewMessagesDialogOpen}
+                dialogProps={viewMessagesDialogProps}
+                onCancel={() => setViewMessagesDialogOpen(false)}
+            />
         </>
     )
 }

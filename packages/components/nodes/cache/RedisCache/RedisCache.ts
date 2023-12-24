@@ -30,7 +30,7 @@ class RedisCache implements INode {
             name: 'credential',
             type: 'credential',
             optional: true,
-            credentialNames: ['redisCacheApi']
+            credentialNames: ['redisCacheApi', 'redisCacheUrlApi']
         }
         this.inputs = [
             {
@@ -48,17 +48,28 @@ class RedisCache implements INode {
         const ttl = nodeData.inputs?.ttl as string
 
         const credentialData = await getCredentialData(nodeData.credential ?? '', options)
-        const username = getCredentialParam('redisCacheUser', credentialData, nodeData)
-        const password = getCredentialParam('redisCachePwd', credentialData, nodeData)
-        const portStr = getCredentialParam('redisCachePort', credentialData, nodeData)
-        const host = getCredentialParam('redisCacheHost', credentialData, nodeData)
+        const redisUrl = getCredentialParam('redisUrl', credentialData, nodeData)
 
-        const client = new Redis({
-            port: portStr ? parseInt(portStr) : 6379,
-            host,
-            username,
-            password
-        })
+        let client: Redis
+        if (!redisUrl || redisUrl === '') {
+            const username = getCredentialParam('redisCacheUser', credentialData, nodeData)
+            const password = getCredentialParam('redisCachePwd', credentialData, nodeData)
+            const portStr = getCredentialParam('redisCachePort', credentialData, nodeData)
+            const host = getCredentialParam('redisCacheHost', credentialData, nodeData)
+            const sslEnabled = getCredentialParam('redisCacheSslEnabled', credentialData, nodeData)
+
+            const tlsOptions = sslEnabled === true ? { tls: { rejectUnauthorized: false } } : {}
+
+            client = new Redis({
+                port: portStr ? parseInt(portStr) : 6379,
+                host,
+                username,
+                password,
+                ...tlsOptions
+            })
+        } else {
+            client = new Redis(redisUrl)
+        }
 
         const redisClient = new LangchainRedisCache(client)
 
@@ -82,7 +93,7 @@ class RedisCache implements INode {
         redisClient.update = async (prompt: string, llmKey: string, value: Generation[]) => {
             for (let i = 0; i < value.length; i += 1) {
                 const key = getCacheKey(prompt, llmKey, String(i))
-                if (ttl !== undefined) {
+                if (ttl) {
                     await client.set(key, JSON.stringify(serializeGeneration(value[i])), 'EX', parseInt(ttl, 10))
                 } else {
                     await client.set(key, JSON.stringify(serializeGeneration(value[i])))

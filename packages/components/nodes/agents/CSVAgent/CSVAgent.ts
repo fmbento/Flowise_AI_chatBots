@@ -23,7 +23,7 @@ class CSV_Agents implements INode {
         this.version = 1.0
         this.type = 'AgentExecutor'
         this.category = 'Agents'
-        this.icon = 'csvagent.png'
+        this.icon = 'CSVagent.svg'
         this.description = 'Agent used to to answer queries on CSV data'
         this.baseClasses = [this.type, ...getBaseClasses(AgentExecutor)]
         this.inputs = [
@@ -131,7 +131,7 @@ json.dumps(my_dict)`
                 const code = `import pandas as pd\n${pythonCode}`
                 finalResult = await pyodide.runPythonAsync(code)
             } catch (error) {
-                throw new Error(`Sorry, I'm unable to find answer for question: "${input}" using follwoing code: "${pythonCode}"`)
+                throw new Error(`Sorry, I'm unable to find answer for question: "${input}" using following code: "${pythonCode}"`)
             }
         }
 

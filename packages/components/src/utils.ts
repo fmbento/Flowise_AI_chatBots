@@ -3,6 +3,7 @@ import { load } from 'cheerio'
 import * as fs from 'fs'
 import * as path from 'path'
 import { JSDOM } from 'jsdom'
+import { z } from 'zod'
 import { DataSource } from 'typeorm'
 import { ICommonObject, IDatabaseEntity, IMessage, INodeData } from './Interface'
 import { AES, enc } from 'crypto-js'
@@ -11,6 +12,63 @@ import { AIMessage, HumanMessage } from 'langchain/schema'
 
 export const numberOrExpressionRegex = '^(\\d+\\.?\\d*|{{.*}})$' //return true if string consists only numbers OR expression {{}}
 export const notEmptyRegex = '(.|\\s)*\\S(.|\\s)*' //return true if string is not empty or blank
+/*
+ * List of dependencies allowed to be import in vm2
+ */
+export const availableDependencies = [
+    '@aws-sdk/client-bedrock-runtime',
+    '@aws-sdk/client-dynamodb',
+    '@aws-sdk/client-s3',
+    '@elastic/elasticsearch',
+    '@dqbd/tiktoken',
+    '@getzep/zep-js',
+    '@gomomento/sdk',
+    '@gomomento/sdk-core',
+    '@google-ai/generativelanguage',
+    '@huggingface/inference',
+    '@notionhq/client',
+    '@opensearch-project/opensearch',
+    '@pinecone-database/pinecone',
+    '@qdrant/js-client-rest',
+    '@supabase/supabase-js',
+    '@upstash/redis',
+    '@zilliz/milvus2-sdk-node',
+    'apify-client',
+    'axios',
+    'cheerio',
+    'chromadb',
+    'cohere-ai',
+    'd3-dsv',
+    'faiss-node',
+    'form-data',
+    'google-auth-library',
+    'graphql',
+    'html-to-text',
+    'ioredis',
+    'langchain',
+    'langfuse',
+    'langsmith',
+    'linkifyjs',
+    'llmonitor',
+    'mammoth',
+    'moment',
+    'mongodb',
+    'mysql2',
+    'node-fetch',
+    'node-html-markdown',
+    'notion-to-md',
+    'openai',
+    'pdf-parse',
+    'pdfjs-dist',
+    'pg',
+    'playwright',
+    'puppeteer',
+    'redis',
+    'replicate',
+    'srt-parser-2',
+    'typeorm',
+    'weaviate-ts-client'
+]
 
 /**
  * Get base classes of components
@@ -132,6 +190,7 @@ export const getNodeModulesPackagePath = (packageName: string): string => {
  * @returns {boolean}
  */
 export const getInputVariables = (paramValue: string): string[] => {
+    if (typeof paramValue !== 'string') return []
     let returnVal = paramValue
     const variableStack = []
     const inputVariables = []
@@ -301,7 +360,7 @@ async function crawl(baseURL: string, currentURL: string, pages: string[], limit
 }
 
 /**
- * Prep URL before passing into recursive carwl function
+ * Prep URL before passing into recursive crawl function
  * @param {string} stringURL
  * @param {number} limit
  * @returns {Promise<string[]>}
@@ -377,7 +436,8 @@ const getEncryptionKeyFilePath = (): string => {
         path.join(__dirname, '..', '..', '..', '..', 'encryption.key'),
         path.join(__dirname, '..', '..', '..', '..', 'server', 'encryption.key'),
         path.join(__dirname, '..', '..', '..', '..', '..', 'encryption.key'),
-        path.join(__dirname, '..', '..', '..', '..', '..', 'server', 'encryption.key')
+        path.join(__dirname, '..', '..', '..', '..', '..', 'server', 'encryption.key'),
+        path.join(getUserHome(), '.flowise', 'encryption.key')
     ]
     for (const checkPath of checkPaths) {
         if (fs.existsSync(checkPath)) {
@@ -387,7 +447,7 @@ const getEncryptionKeyFilePath = (): string => {
     return ''
 }
 
-const getEncryptionKeyPath = (): string => {
+export const getEncryptionKeyPath = (): string => {
     return process.env.SECRETKEY_PATH ? path.join(process.env.SECRETKEY_PATH, 'encryption.key') : getEncryptionKeyFilePath()
 }
 
@@ -445,7 +505,7 @@ export const getCredentialData = async (selectedCredentialId: string, options: I
 
         if (!credential) return {}
 
-        // Decrpyt credentialData
+        // Decrypt credentialData
         const decryptedCredentialData = await decryptCredentialData(credential.encryptedData)
 
         return decryptedCredentialData
@@ -511,7 +571,7 @@ export const getUserHome = (): string => {
 
 /**
  * Map incoming chat history to ChatMessageHistory
- * @param {options} ICommonObject
+ * @param {ICommonObject} options
  * @returns {ChatMessageHistory}
  */
 export const mapChatHistory = (options: ICommonObject): ChatMessageHistory => {
@@ -545,4 +605,43 @@ export const convertChatHistoryToText = (chatHistory: IMessage[] = []): string =
             }
         })
         .join('\n')
+}
+
+/**
+ * Serialize array chat history to string
+ * @param {IMessage[]} chatHistory
+ * @returns {string}
+ */
+export const serializeChatHistory = (chatHistory: string | Array<string>) => {
+    if (Array.isArray(chatHistory)) {
+        return chatHistory.join('\n')
+    }
+    return chatHistory
+}
+
+/**
+ * Convert schema to zod schema
+ * @param {string | object} schema
+ * @returns {ICommonObject}
+ */
+export const convertSchemaToZod = (schema: string | object): ICommonObject => {
+    try {
+        const parsedSchema = typeof schema === 'string' ? JSON.parse(schema) : schema
+        const zodObj: ICommonObject = {}
+        for (const sch of parsedSchema) {
+            if (sch.type === 'string') {
+                if (sch.required) z.string({ required_error: `${sch.property} required` }).describe(sch.description)
+                zodObj[sch.property] = z.string().describe(sch.description)
+            } else if (sch.type === 'number') {
+                if (sch.required) z.number({ required_error: `${sch.property} required` }).describe(sch.description)
+                zodObj[sch.property] = z.number().describe(sch.description)
+            } else if (sch.type === 'boolean') {
+                if (sch.required) z.boolean({ required_error: `${sch.property} required` }).describe(sch.description)
+                zodObj[sch.property] = z.boolean().describe(sch.description)
+            }
+        }
+        return zodObj
+    } catch (e) {
+        throw new Error(e)
+    }
 }

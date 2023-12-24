@@ -21,7 +21,7 @@ class POSTApiChain_Chains implements INode {
         this.name = 'postApiChain'
         this.version = 1.0
         this.type = 'POSTApiChain'
-        this.icon = 'apichain.svg'
+        this.icon = 'post.svg'
         this.category = 'Chains'
         this.description = 'Chain to run queries against POST API'
         this.baseClasses = [this.type, ...getBaseClasses(APIChain)]
@@ -36,7 +36,7 @@ class POSTApiChain_Chains implements INode {
                 name: 'apiDocs',
                 type: 'string',
                 description:
-                    'Description of how API works. Please refer to more <a target="_blank" href="https://github.com/hwchase17/langchain/blob/master/langchain/chains/api/open_meteo_docs.py">examples</a>',
+                    'Description of how API works. Please refer to more <a target="_blank" href="https://github.com/langchain-ai/langchain/blob/master/libs/langchain/langchain/chains/api/open_meteo_docs.py">examples</a>',
                 rows: 4
             },
             {

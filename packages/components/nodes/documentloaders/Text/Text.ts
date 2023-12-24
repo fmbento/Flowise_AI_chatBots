@@ -19,9 +19,9 @@ class Text_DocumentLoaders implements INode {
     constructor() {
         this.label = 'Text File'
         this.name = 'textFile'
-        this.version = 2.0
+        this.version = 3.0
         this.type = 'Document'
-        this.icon = 'textFile.svg'
+        this.icon = 'Txt.svg'
         this.category = 'Document Loaders'
         this.description = `Load data from text files`
         this.baseClasses = [this.type]
@@ -30,7 +30,8 @@ class Text_DocumentLoaders implements INode {
                 label: 'Txt File',
                 name: 'txtFile',
                 type: 'file',
-                fileType: '.txt'
+                fileType:
+                    '.txt, .html, .aspx, .asp, .cpp, .c, .cs, .css, .go, .h, .java, .js, .less, .ts, .php, .proto, .python, .py, .rst, .ruby, .rb, .rs, .scala, .sc, .scss, .sol, .sql, .swift, .markdown, .md, .tex, .ltx, .vb, .xml'
             },
             {
                 label: 'Text Splitter',
