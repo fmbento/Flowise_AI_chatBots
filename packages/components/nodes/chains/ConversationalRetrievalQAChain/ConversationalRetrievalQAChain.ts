@@ -1,18 +1,18 @@
-import { BaseLanguageModel } from 'langchain/base_language'
-import { ConversationalRetrievalQAChain } from 'langchain/chains'
-import { BaseRetriever } from 'langchain/schema/retriever'
-import { BufferMemoryInput } from 'langchain/memory'
-import { PromptTemplate } from 'langchain/prompts'
-import { QA_TEMPLATE, REPHRASE_TEMPLATE, RESPONSE_TEMPLATE } from './prompts'
-import { Runnable, RunnableSequence, RunnableMap, RunnableBranch, RunnableLambda } from 'langchain/schema/runnable'
-import { BaseMessage, HumanMessage, AIMessage } from 'langchain/schema'
-import { StringOutputParser } from 'langchain/schema/output_parser'
-import type { Document } from 'langchain/document'
-import { ChatPromptTemplate, MessagesPlaceholder } from 'langchain/prompts'
 import { applyPatch } from 'fast-json-patch'
+import { BaseLanguageModel } from '@langchain/core/language_models/base'
+import { BaseRetriever } from '@langchain/core/retrievers'
+import { PromptTemplate, ChatPromptTemplate, MessagesPlaceholder } from '@langchain/core/prompts'
+import { Runnable, RunnableSequence, RunnableMap, RunnableBranch, RunnableLambda } from '@langchain/core/runnables'
+import { BaseMessage, HumanMessage, AIMessage } from '@langchain/core/messages'
+import { ConsoleCallbackHandler as LCConsoleCallbackHandler } from '@langchain/core/tracers/console'
+import { StringOutputParser } from '@langchain/core/output_parsers'
+import type { Document } from '@langchain/core/documents'
+import { BufferMemoryInput } from 'langchain/memory'
+import { ConversationalRetrievalQAChain } from 'langchain/chains'
 import { convertBaseMessagetoIMessage, getBaseClasses } from '../../../src/utils'
 import { ConsoleCallbackHandler, additionalCallbacks } from '../../../src/handler'
 import { FlowiseMemory, ICommonObject, IMessage, INode, INodeData, INodeParams, MemoryMethods } from '../../../src/Interface'
+import { QA_TEMPLATE, REPHRASE_TEMPLATE, RESPONSE_TEMPLATE } from './prompts'
 
 type RetrievalChainInput = {
     chat_history: string
@@ -176,11 +176,17 @@ class ConversationalRetrievalQAChain_Chains implements INode {
         const history = ((await memory.getChatMessages(this.sessionId, false, options.chatHistory)) as IMessage[]) ?? []
 
         const loggerHandler = new ConsoleCallbackHandler(options.logger)
-        const callbacks = await additionalCallbacks(nodeData, options)
+        const additionalCallback = await additionalCallbacks(nodeData, options)
+
+        let callbacks = [loggerHandler, ...additionalCallback]
+
+        if (process.env.DEBUG === 'true') {
+            callbacks.push(new LCConsoleCallbackHandler())
+        }
 
         const stream = answerChain.streamLog(
             { question: input, chat_history: history },
-            { callbacks: [loggerHandler, ...callbacks] },
+            { callbacks },
             {
                 includeNames: [sourceRunnableName]
             }
