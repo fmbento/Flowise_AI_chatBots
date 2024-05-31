@@ -1,28 +1,23 @@
-import { ICommonObject, IFileUpload, IMultiModalOption, INodeData, MessageContentImageUrl } from './Interface'
-import { ChatOpenAI } from '../nodes/chatmodels/ChatOpenAI/FlowiseChatOpenAI'
-import path from 'path'
-import { getStoragePath } from './utils'
-import fs from 'fs'
+import { IVisionChatModal, ICommonObject, IFileUpload, IMultiModalOption, INodeData, MessageContentImageUrl } from './Interface'
+import { getFileFromStorage } from './storageUtils'
 
-export const addImagesToMessages = (
+export const addImagesToMessages = async (
     nodeData: INodeData,
     options: ICommonObject,
     multiModalOption?: IMultiModalOption
-): MessageContentImageUrl[] => {
+): Promise<MessageContentImageUrl[]> => {
     const imageContent: MessageContentImageUrl[] = []
     let model = nodeData.inputs?.model
 
-    if (model instanceof ChatOpenAI && multiModalOption) {
+    if (llmSupportsVision(model) && multiModalOption) {
         // Image Uploaded
         if (multiModalOption.image && multiModalOption.image.allowImageUploads && options?.uploads && options?.uploads.length > 0) {
             const imageUploads = getImageUploads(options.uploads)
             for (const upload of imageUploads) {
                 let bf = upload.data
                 if (upload.type == 'stored-file') {
-                    const filePath = path.join(getStoragePath(), options.chatflowid, options.chatId, upload.name)
-
+                    const contents = await getFileFromStorage(upload.name, options.chatflowid, options.chatId)
                     // as the image is stored in the server, read the file and convert it to base64
-                    const contents = fs.readFileSync(filePath)
                     bf = 'data:' + upload.mime + ';base64,' + contents.toString('base64')
 
                     imageContent.push({
@@ -46,3 +41,5 @@ export const getAudioUploads = (uploads: IFileUpload[]) => {
 export const getImageUploads = (uploads: IFileUpload[]) => {
     return uploads.filter((upload: IFileUpload) => upload.mime.startsWith('image/'))
 }
+
+export const llmSupportsVision = (value: any): value is IVisionChatModal => !!value?.multiModalOption
